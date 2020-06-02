@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"flag"
 	"fmt"
 )
@@ -26,6 +27,16 @@ func main() {
 	data := GetData(conf, clopts)
 
 	for opt, value := range data {
-		fmt.Println(opt + " = " + value)
+		if len(value.strval) > 0 {
+			fmt.Printf("%s = %s", opt, value.strval)
+		} else {
+			fmt.Printf("%s = %s", opt, strconv.FormatFloat(value.floatval, 'E', -1, 64))
+		}
+
+		if len(value.unit) > 0 {
+			fmt.Printf(" %s", value.unit)
+		}
+
+		fmt.Printf("\n")
 	}
 }

@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strconv"
-	"os"
 	"time"
+	"os"
 )
 
 type Config struct {
@@ -42,7 +41,13 @@ func ReadConf() Config {
 	return res
 }
 
-func GetData(conf Config, fields []string) map[string]string {
+type Entry struct {
+	unit     string
+	strval   string
+	floatval float64
+}
+
+func GetData(conf Config, fields []string) map[string]*Entry {
 	url := conf.Base + conf.Path + "?apikey=" + conf.ApiKey + "&lat=" + conf.Lat + "&lon=" + conf.Lon + "&unit_system=" + conf.Units
 	var n = 0
 	for _, name := range fields {
@@ -67,23 +72,26 @@ func GetData(conf Config, fields []string) map[string]string {
 	json.Unmarshal(body, &anyJson)
 
 	loc := time.Now().Location()
-	result := make(map[string]string)
+	result := make(map[string]*Entry)
 	for _, val := range fields {
 		temp := anyJson[val].(map[string]interface{})
 		switch tval := temp["value"].(type) {
 		case string:
 			if tm, err := time.ParseInLocation(time.RFC3339, tval, loc); err == nil {
-				result[val] = tm.In(time.Local).Format(time.UnixDate)
+				tstr := tm.In(time.Local).Format(time.UnixDate)
+				result[val] = &Entry { strval: tstr }
 			} else {
-				result[val] = tval
+				result[val] = &Entry { strval: tval }
 			}
 
-		case float64: result[val] = strconv.FormatFloat(tval, 'E', -1, 64)
+		case float64: result[val] = &Entry { strval: "", floatval: tval }
 		default: panic("Unknown type in " + val)
 		}
 
 		if unit, ok := temp["units"].(string); ok {
-			result[val] = result[val] + " " + unit
+			result[val].unit = unit
+		} else {
+			result[val].unit = ""
 		}
 	}
 
