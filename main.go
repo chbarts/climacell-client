@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strconv"
 	"flag"
 	"fmt"
 )
@@ -30,7 +29,7 @@ func main() {
 		if len(value.strval) > 0 {
 			fmt.Printf("%s = %s", opt, value.strval)
 		} else {
-			fmt.Printf("%s = %s", opt, strconv.FormatFloat(value.floatval, 'E', -1, 64))
+			fmt.Printf("%s = %f", opt, value.floatval)
 		}
 
 		if len(value.unit) > 0 {
