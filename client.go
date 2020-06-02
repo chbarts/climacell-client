@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"flag"
-	"fmt"
+	"strconv"
 	"os"
 	"time"
 )
@@ -43,32 +42,18 @@ func ReadConf() Config {
 	return res
 }
 
-func main() {
-	conf := ReadConf()
+func GetData(conf Config, fields []string) map[string]string {
 	url := conf.Base + conf.Path + "?apikey=" + conf.ApiKey + "&lat=" + conf.Lat + "&lon=" + conf.Lon + "&unit_system=" + conf.Units
-	opts := make(map[string]*bool)
-	if len(conf.Options) > 0 {
-		for _, str := range conf.Options {
-			opts[str] = flag.Bool(str, false, "Add this information to result")
-		}
-	}
-
-	flag.Parse()
-
 	var n = 0
-	var clopts []string
-	for key, val := range opts {
-		if *val {
-			if n > 0 {
-				url = url + "%2C"
-			} else {
-				url = url + "&fields="
-			}
-
-			url = url + key
-			clopts = append(clopts, key)
-			n++
+	for _, name := range fields {
+		if n > 0 {
+			url = url + "%2C"
+		} else {
+			url = url + "&fields="
 		}
+
+		url = url + name
+		n++
 	}
 
 	res, err := http.Get(url)
@@ -82,24 +67,25 @@ func main() {
 	json.Unmarshal(body, &anyJson)
 
 	loc := time.Now().Location()
-	for _, val := range clopts {
+	result := make(map[string]string)
+	for _, val := range fields {
 		temp := anyJson[val].(map[string]interface{})
 		switch tval := temp["value"].(type) {
 		case string:
 			if tm, err := time.ParseInLocation(time.RFC3339, tval, loc); err == nil {
-				fmt.Printf("%s = %s ", val, tm.In(time.Local).Format(time.UnixDate))
+				result[val] = tm.In(time.Local).Format(time.UnixDate)
 			} else {
-				fmt.Printf("%s = %s ", val, tval)
+				result[val] = tval
 			}
 
-		case float64: fmt.Printf("%s = %f ", val, tval)
+		case float64: result[val] = strconv.FormatFloat(tval, 'E', -1, 64)
 		default: panic("Unknown type in " + val)
 		}
 
 		if unit, ok := temp["units"].(string); ok {
-			fmt.Printf("%s", unit)
+			result[val] = result[val] + " " + unit
 		}
-
-		fmt.Printf("\n")
 	}
+
+	return result
 }
