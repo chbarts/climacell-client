@@ -71,14 +71,13 @@ func GetData(conf Config, fields []string) map[string]*Entry {
 	var anyJson map[string]interface{}
 	json.Unmarshal(body, &anyJson)
 
-	loc := time.Now().Location()
 	result := make(map[string]*Entry)
 	for _, val := range fields {
 		temp := anyJson[val].(map[string]interface{})
 		switch tval := temp["value"].(type) {
 		case string:
-			if tm, err := time.ParseInLocation(time.RFC3339, tval, loc); err == nil {
-				tstr := tm.In(time.Local).Format(time.UnixDate)
+			if tm, err := time.Parse(time.RFC3339, tval); err == nil {
+				tstr := tm.Local().Format(time.UnixDate)
 				result[val] = &Entry { strval: tstr }
 			} else {
 				result[val] = &Entry { strval: tval }
